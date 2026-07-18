@@ -9,6 +9,7 @@ secrets.env
 # Agent and editor state
 .claude/
 .codex/
+.playwright-cli/
 .specstory/
 .DS_Store
 .idea/
@@ -16,6 +17,7 @@ secrets.env
 
 # JavaScript / TypeScript
 node_modules/
+.wrangler/
 .next/
 dist/
 coverage/
@@ -29,4 +31,4 @@ __pycache__/
 # Local output
 tmp/
 artifacts/
-
+output/
