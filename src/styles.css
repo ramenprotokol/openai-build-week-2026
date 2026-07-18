@@ -362,6 +362,14 @@ p {
 .apply-gate p, .applied-card p { color: #c6cec9; line-height: 1.55; }
 .apply-confirm { display: flex; margin: 16px 0; gap: 10px; align-items: flex-start; color: #e8e1d2; line-height: 1.45; }
 .apply-confirm input { width: 18px; height: 18px; accent-color: var(--gold); }
+.trace-card { margin-top: 28px; padding: 20px; border: 1px solid #43504d; background: rgba(9,16,15,.55); }
+.trace-card h2 { margin: 5px 0 18px; font-family: var(--display); font-size: 1.7rem; }
+.trace-card ol { margin: 0; padding: 0; list-style: none; }
+.trace-card li { display: grid; grid-template-columns: 90px 1fr; gap: 5px 14px; padding: 12px 0; border-top: 1px solid #34413e; }
+.trace-card li > strong { text-transform: capitalize; }
+.trace-card li > span, .trace-card li > small { color: #9da7a3; }
+.trace-card code { grid-column: 1 / -1; overflow: hidden; color: #c9a45e; font-family: var(--mono); font-size: .7rem; text-overflow: ellipsis; }
+.trace-card .text-action { margin-top: 16px; color: #f5efdf; }
 
 @media (max-width: 900px) {
   .mode-choices, .real-safety-grid { grid-template-columns: 1fr; }

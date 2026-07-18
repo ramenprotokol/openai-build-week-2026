@@ -63,6 +63,11 @@ Open `http://127.0.0.1:4317`, choose **Real Mode**, and complete the visible gat
 4. Request an independent read-only Verifier review.
 5. Apply the verified patch to your working tree only if you approve it.
 
+After each live role, the interface displays its model, sandbox, persisted Codex
+thread ID, and measured token usage. **Download trace JSON** exports those records
+with timestamps and evidence references, while excluding prompts, credentials and
+private machine paths.
+
 The runner uses the Codex login and usage allowance already available on the user's
 computer; normal Codex plan limits still apply. It does not commit, push, deploy,
 give agent shell tools network access, or overwrite a dirty repository. If the

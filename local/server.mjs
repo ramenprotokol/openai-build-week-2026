@@ -3,7 +3,7 @@ import { createReadStream, existsSync } from "node:fs";
 import { mkdtemp, readFile, realpath, rm, stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
-import { extname, join, resolve, sep } from "node:path";
+import { basename, extname, join, resolve, sep } from "node:path";
 import { randomBytes } from "node:crypto";
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
@@ -73,6 +73,40 @@ function codexThread(workingDirectory, sandboxMode) {
   return new Codex().startThread({ workingDirectory, sandboxMode, model, modelReasoningEffort: "high", approvalPolicy: "never", networkAccessEnabled: false });
 }
 
+async function runRole(role, workingDirectory, sandboxMode, prompt, outputSchema) {
+  const startedAt = new Date().toISOString();
+  const thread = codexThread(workingDirectory, sandboxMode);
+  const result = await thread.run(prompt, { outputSchema });
+  return {
+    result,
+    trace: {
+      role,
+      model,
+      sandboxMode,
+      networkAccess: false,
+      threadId: thread.id,
+      startedAt,
+      completedAt: new Date().toISOString(),
+      usage: result.usage,
+      evidenceReferences: [],
+    },
+  };
+}
+
+function publicTrace(session) {
+  return {
+    schemaVersion: "1.0",
+    product: "CONTROL ROOM",
+    sessionId: session.id,
+    repositoryName: basename(repository),
+    baseCommit: session.baseHead,
+    startedAt: session.startedAt,
+    completedAt: session.completedAt || null,
+    finalStatus: session.finalStatus || "in_progress",
+    roles: session.traces,
+  };
+}
+
 async function createWorktree(session) {
   const tempRoot = await mkdtemp(join(tmpdir(), "control-room-"));
   const worktree = join(tempRoot, "worktree");
@@ -111,9 +145,12 @@ async function api(req, res, pathname) {
     if (!status.clean) throw new Error("Repository must be clean before Real Mode starts. Commit or stash your changes first.");
     const id = randomBytes(10).toString("hex");
     const prompt = `You are Scout in CONTROL ROOM. Inspect this repository read-only. Do not edit, commit, push, or use the network.\n\nObjective: ${brief.objective}\nBoundary: ${brief.boundary}\nDone when: ${brief.doneWhen}\nRequired evidence: ${brief.evidence}\n\nReturn only claims supported by repository evidence. Cite repository-relative paths and real 1-based line numbers. Propose a bounded implementation plan.`;
-    const result = await codexThread(repository, "read-only").run(prompt, { outputSchema: scoutSchema });
-    sessions.set(id, { id, brief, baseHead: status.head, scout: result.finalResponse });
-    return json(res, 200, { sessionId: id, report: JSON.parse(result.finalResponse) });
+    const { result, trace } = await runRole("scout", repository, "read-only", prompt, scoutSchema);
+    const report = JSON.parse(result.finalResponse);
+    trace.evidenceReferences = report.findings.map((finding) => `${finding.path}:${finding.line}`);
+    const session = { id, brief, baseHead: status.head, scout: result.finalResponse, startedAt: trace.startedAt, traces: [trace] };
+    sessions.set(id, session);
+    return json(res, 200, { sessionId: id, report, trace: publicTrace(session) });
   }
   const session = sessions.get(body.sessionId);
   if (!session) throw new Error("Real Mode session was not found. Start with Scout again.");
@@ -124,11 +161,14 @@ async function api(req, res, pathname) {
     await createWorktree(session);
     try {
       const prompt = `You are Builder in CONTROL ROOM. Work only in this isolated Git worktree. Implement the approved task. Do not commit, push, change git configuration, or use the network. Keep changes inside the stated boundary.\n\nObjective: ${session.brief.objective}\nBoundary: ${session.brief.boundary}\nDone when: ${session.brief.doneWhen}\nRequired evidence: ${session.brief.evidence}\n\nScout report:\n${session.scout}\n\nMake the code changes now, then summarize exactly what changed and what should be tested.`;
-      const result = await codexThread(session.worktree, "workspace-write").run(prompt, { outputSchema: builderSchema });
+      const { result, trace } = await runRole("builder", session.worktree, "workspace-write", prompt, builderSchema);
       session.builder = result.finalResponse;
       await git(session.worktree, ["add", "-N", "--", "."]);
       const patch = await patchFor(session); const files = await git(session.worktree, ["diff", "--name-only"]); const statText = await git(session.worktree, ["diff", "--stat"]);
-      return json(res, 200, { report: JSON.parse(result.finalResponse), files: files ? files.split("\n") : [], stat: statText, patch: patch.slice(0, 120_000) });
+      const changedFiles = files ? files.split("\n") : [];
+      trace.evidenceReferences = changedFiles;
+      session.traces.push(trace);
+      return json(res, 200, { report: JSON.parse(result.finalResponse), files: changedFiles, stat: statText, patch: patch.slice(0, 120_000), trace: publicTrace(session) });
     } catch (error) {
       await cleanSession(session);
       throw error;
@@ -138,9 +178,14 @@ async function api(req, res, pathname) {
     if (!session.worktree || !session.builder) throw new Error("Builder has not prepared a change.");
     const diffCheck = await git(session.worktree, ["diff", "--check"]); const patch = await patchFor(session);
     const prompt = `You are Verifier in CONTROL ROOM. Independently review the uncommitted diff in this worktree. Read only: never modify files, commit, push, or use the network. Check the requested completion condition, correctness, regressions, tests, security, and boundary compliance.\n\nObjective: ${session.brief.objective}\nBoundary: ${session.brief.boundary}\nDone when: ${session.brief.doneWhen}\nRequired evidence: ${session.brief.evidence}\n\nBuilder report:\n${session.builder}\n\nInspect the actual repository and git diff. Report pass only when the evidence supports it.`;
-    const result = await codexThread(session.worktree, "read-only").run(prompt, { outputSchema: verifierSchema });
+    const { result, trace } = await runRole("verifier", session.worktree, "read-only", prompt, verifierSchema);
     session.verified = result.finalResponse;
-    return json(res, 200, { report: JSON.parse(result.finalResponse), diffCheck: diffCheck || "No whitespace errors.", patch: patch.slice(0, 120_000) });
+    const report = JSON.parse(result.finalResponse);
+    trace.evidenceReferences = report.checks;
+    session.traces.push(trace);
+    session.completedAt = trace.completedAt;
+    session.finalStatus = report.status;
+    return json(res, 200, { report, diffCheck: diffCheck || "No whitespace errors.", patch: patch.slice(0, 120_000), trace: publicTrace(session) });
   }
   if (pathname === "/api/real/apply" && req.method === "POST") {
     if (!session.verified) throw new Error("Independent verification is required before applying a patch.");
@@ -150,8 +195,10 @@ async function api(req, res, pathname) {
     const patch = await patchFor(session); if (!patch) throw new Error("Builder produced no patch.");
     await runWithInput("git", ["-C", repository, "apply", "--check", "-"], repository, patch);
     await runWithInput("git", ["-C", repository, "apply", "-"], repository, patch);
+    session.completedAt ||= new Date().toISOString(); session.finalStatus = "applied";
+    const trace = publicTrace(session);
     await cleanSession(session); sessions.delete(session.id);
-    return json(res, 200, { applied: true, files: await git(repository, ["status", "--short"]) });
+    return json(res, 200, { applied: true, files: await git(repository, ["status", "--short"]), trace });
   }
   if (pathname === "/api/real/discard" && req.method === "POST") {
     await cleanSession(session); sessions.delete(session.id); return json(res, 200, { discarded: true });

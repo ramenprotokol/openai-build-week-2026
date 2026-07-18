@@ -3,6 +3,8 @@ import { FormEvent, useEffect, useState } from "react";
 type Brief = { objective: string; boundary: string; doneWhen: string; evidence: string };
 type Stage = "brief" | "scouting" | "scout" | "building" | "builder" | "verifying" | "verified" | "applying" | "applied";
 type Report = Record<string, unknown>;
+type TraceRole = { role: string; model: string; sandboxMode: string; threadId: string | null; usage: { input_tokens: number; output_tokens: number } | null };
+type Trace = { sessionId: string; repositoryName: string; baseCommit: string; finalStatus: string; roles: TraceRole[] };
 
 const starterBrief: Brief = {
   objective: "",
@@ -77,6 +79,7 @@ export function RealWorkspace({ onBack }: { onBack: () => void }) {
   const [patch, setPatch] = useState("");
   const [error, setError] = useState("");
   const [applyApproved, setApplyApproved] = useState(false);
+  const [trace, setTrace] = useState<Trace | null>(null);
 
   useEffect(() => { callApi("/api/real/status").then(setStatus).catch((value) => setError(value.message)); }, []);
   const update = (key: keyof Brief, value: string) => setBrief((current) => ({ ...current, [key]: value }));
@@ -87,11 +90,19 @@ export function RealWorkspace({ onBack }: { onBack: () => void }) {
       if (payload.sessionId) setSessionId(payload.sessionId);
       if (payload.report) setReport(payload.report);
       if (payload.patch) setPatch(payload.patch);
+      if (payload.trace) setTrace(payload.trace);
       setStage(done);
     } catch (value) { setError(value instanceof Error ? value.message : "Real Mode failed."); setStage(next === "scouting" ? "brief" : next === "building" ? "scout" : next === "verifying" ? "builder" : "verified"); }
   };
   const scout = (event: FormEvent) => { event.preventDefault(); void act("scouting", "/api/real/scout", "scout", { brief }); };
   const busy = ["scouting", "building", "verifying", "applying"].includes(stage);
+  const downloadTrace = () => {
+    if (!trace) return;
+    const url = URL.createObjectURL(new Blob([JSON.stringify(trace, null, 2)], { type: "application/json" }));
+    const anchor = document.createElement("a");
+    anchor.href = url; anchor.download = `control-room-trace-${trace.sessionId}.json`; anchor.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="real-mode">
@@ -125,6 +136,7 @@ export function RealWorkspace({ onBack }: { onBack: () => void }) {
           {patch && (stage === "builder" || stage === "verified") && <details className="patch-preview"><summary>Inspect the actual patch</summary><pre>{patch}</pre></details>}
           {stage === "verified" && <div className="apply-gate"><p><strong>Final human decision.</strong> Apply changes to your repository working tree? This does not commit or push.</p><label className="apply-confirm"><input checked={applyApproved} onChange={(event) => setApplyApproved(event.target.checked)} type="checkbox" /> I inspected this patch and authorize CONTROL ROOM to apply it.</label><button className="primary-action" disabled={!applyApproved} onClick={() => void act("applying", "/api/real/apply", "applied", { sessionId })} type="button">Apply verified patch <span>✓</span></button></div>}
           {stage === "applied" && <div className="applied-card"><strong>Changes are now in your working tree.</strong><p>Review them normally, run your project tests, then commit only if you are satisfied.</p></div>}
+          {trace && <section className="trace-card"><div><p className="eyebrow">Live Codex proof</p><h2>{trace.roles.length} of 3 role traces captured</h2></div><ol>{trace.roles.map((role) => <li key={role.role}><strong>{role.role}</strong><span>{role.model} · {role.sandboxMode}</span><code>{role.threadId || "Thread ID pending"}</code><small>{role.usage ? `${role.usage.input_tokens.toLocaleString()} in · ${role.usage.output_tokens.toLocaleString()} out` : "Usage unavailable"}</small></li>)}</ol><button className="text-action" onClick={downloadTrace} type="button">Download trace JSON ↓</button></section>}
           {!report && !busy && <div className="real-empty"><span>01</span><h2>Evidence appears here.</h2><p>Write the task on the left. CONTROL ROOM will not let Builder act until you inspect Scout’s repository evidence.</p></div>}
         </aside>
       </main>
