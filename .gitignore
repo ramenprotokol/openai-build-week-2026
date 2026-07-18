@@ -1,0 +1,32 @@
+# Secrets and local configuration
+.env
+.env.*
+*.dev.vars
+secrets.env
+*.pem
+*.key
+
+# Agent and editor state
+.claude/
+.codex/
+.specstory/
+.DS_Store
+.idea/
+.vscode/
+
+# JavaScript / TypeScript
+node_modules/
+.next/
+dist/
+coverage/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+
+# Local output
+tmp/
+artifacts/
+
