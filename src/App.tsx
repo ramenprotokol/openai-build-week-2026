@@ -502,8 +502,125 @@ function Debrief({
   );
 }
 
+function DrillIntroduction({
+  onBegin,
+  reduceMotion,
+  onToggleMotion,
+}: {
+  onBegin: () => void;
+  reduceMotion: boolean;
+  onToggleMotion: () => void;
+}) {
+  return (
+    <main className="drill-intro" id="main-content">
+      <header className="intro-masthead">
+        <span className="intro-brand">CONTROL ROOM</span>
+        <span className="intro-edition">Training simulation · Incident 01</span>
+        <button
+          aria-pressed={reduceMotion}
+          className="motion-toggle intro-motion-toggle"
+          onClick={onToggleMotion}
+          type="button"
+        >
+          {reduceMotion ? "Motion reduced" : "Reduce motion"}
+        </button>
+      </header>
+
+      <section className="intro-briefing" aria-labelledby="intro-title">
+        <div className="intro-copy">
+          <p className="eyebrow">A flight simulator for directing AI coding agents</p>
+          <h1 id="intro-title">
+            Agents move fast.
+            <span>You decide when they may act.</span>
+          </h1>
+          <p className="intro-lede">
+            Practise leading three AI agents through a simulated software incident.
+            You will define their boundaries, inspect their evidence, stop an unsafe
+            change, and require independent proof before approving the result.
+          </p>
+
+          <div className="intro-definition">
+            <span>What this is</span>
+            <strong>
+              Training for the human supervising the agents—not another coding
+              assistant.
+            </strong>
+          </div>
+
+          <button className="primary-action intro-begin" onClick={onBegin} type="button">
+            Begin the five-minute drill
+            <span aria-hidden="true">→</span>
+          </button>
+          <p className="intro-safety">
+            Safe simulation · No real repository is changed · No account required
+          </p>
+        </div>
+
+        <aside className="intro-chain-panel" aria-labelledby="chain-title">
+          <div className="intro-chain-heading">
+            <div>
+              <p className="eyebrow">How you use it</p>
+              <h2 id="chain-title">The command chain</h2>
+            </div>
+            <span>Your decisions stay in the loop</span>
+          </div>
+
+          <ol className="intro-chain">
+            <li className="intro-chain__step intro-chain__step--human">
+              <span>01</span>
+              <div>
+                <strong>You brief Scout</strong>
+                <p>Set the objective, limits, completion condition, and proof.</p>
+              </div>
+            </li>
+            <li className="intro-chain__step">
+              <RoleMark role="scout" />
+              <div>
+                <strong>Scout investigates</strong>
+                <p>Read only. Returns file, test, and log evidence.</p>
+              </div>
+            </li>
+            <li className="intro-chain__gate">
+              <span>Your approval</span>
+              <strong>Evidence before action</strong>
+            </li>
+            <li className="intro-chain__step">
+              <RoleMark role="builder" />
+              <div>
+                <strong>Builder prepares a change</strong>
+                <p>The drill stops the work when regional evidence conflicts.</p>
+              </div>
+            </li>
+            <li className="intro-chain__gate">
+              <span>Your approval</span>
+              <strong>Proof before trust</strong>
+            </li>
+            <li className="intro-chain__step">
+              <RoleMark role="verifier" />
+              <div>
+                <strong>Verifier checks independently</strong>
+                <p>You finish with coaching tied to your actual decisions.</p>
+              </div>
+            </li>
+          </ol>
+        </aside>
+      </section>
+
+      <footer className="intro-audience">
+        <span>Built for</span>
+        <p>
+          Developers, technical leads, and teams learning to supervise AI agents
+          safely.
+        </p>
+        <strong>Education drill · Verified replay</strong>
+      </footer>
+    </main>
+  );
+}
+
 function App() {
   const [state, dispatch] = useReducer(scenarioReducer, initialState);
+  const [hasStarted, setHasStarted] = useState(false);
   const [draft, setDraft] = useState<DirectiveDraft>({
     objective: "",
     boundary: "",
@@ -517,10 +634,16 @@ function App() {
   const sessionId = useRef(crypto.randomUUID());
 
   useEffect(() => {
-    if (state.stage === "debrief") return;
+    if (!hasStarted || state.stage === "debrief") return;
     const interval = window.setInterval(() => setSeconds((value) => value + 1), 1000);
     return () => window.clearInterval(interval);
-  }, [state.stage]);
+  }, [hasStarted, state.stage]);
+
+  useEffect(() => {
+    if (hasStarted) {
+      mainRef.current?.focus({ preventScroll: true });
+    }
+  }, [hasStarted]);
 
   useEffect(() => {
     if (state.stage !== "briefing") {
@@ -611,6 +734,19 @@ function App() {
     sessionId.current = crypto.randomUUID();
     window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
   };
+
+  if (!hasStarted) {
+    return (
+      <div className={reduceMotion ? "app reduce-motion" : "app"}>
+        <a className="skip-link" href="#main-content">Skip to introduction</a>
+        <DrillIntroduction
+          onBegin={() => setHasStarted(true)}
+          onToggleMotion={() => setReduceMotion((value) => !value)}
+          reduceMotion={reduceMotion}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className={reduceMotion ? "app reduce-motion" : "app"}>
