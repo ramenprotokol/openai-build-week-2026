@@ -177,6 +177,9 @@ describe("worker API", () => {
     expect(response.headers.get("Content-Security-Policy")).toContain(
       "frame-ancestors 'none'",
     );
+    expect(response.headers.get("Content-Security-Policy")).toContain(
+      "font-src 'self' data:",
+    );
     expect(response.headers.get("X-Frame-Options")).toBe("DENY");
     expect(response.headers.get("Referrer-Policy")).toBe("no-referrer");
   });

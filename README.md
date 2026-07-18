@@ -149,6 +149,8 @@ run the current local slice.
 
 ## Links
 
+- [Live demo](https://control-room-build-week-2026.pages.dev/)
+- [Public repository](https://github.com/ramenprotokol/openai-build-week-2026)
 - [Challenge overview](https://openai.devpost.com/)
 - [Official rules](https://openai.devpost.com/rules)
 
