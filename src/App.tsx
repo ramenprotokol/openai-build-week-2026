@@ -24,6 +24,7 @@ import type {
   Turn,
   TurnResult,
 } from "./shared/agent-contract";
+import { RealSetup, RealWorkspace } from "./RealMode";
 
 const transitionDelay = 760;
 
@@ -503,11 +504,13 @@ function Debrief({
 }
 
 function DrillIntroduction({
-  onBegin,
+  onTrial,
+  onReal,
   reduceMotion,
   onToggleMotion,
 }: {
-  onBegin: () => void;
+  onTrial: () => void;
+  onReal: () => void;
   reduceMotion: boolean;
   onToggleMotion: () => void;
 }) {
@@ -515,7 +518,7 @@ function DrillIntroduction({
     <main className="drill-intro" id="main-content">
       <header className="intro-masthead">
         <span className="intro-brand">CONTROL ROOM</span>
-        <span className="intro-edition">Training simulation · Incident 01</span>
+        <span className="intro-edition">Trial + real repository workflow</span>
         <button
           aria-pressed={reduceMotion}
           className="motion-toggle intro-motion-toggle"
@@ -528,32 +531,39 @@ function DrillIntroduction({
 
       <section className="intro-briefing" aria-labelledby="intro-title">
         <div className="intro-copy">
-          <p className="eyebrow">A flight simulator for directing AI coding agents</p>
+          <p className="eyebrow">A control layer for directing AI coding agents</p>
           <h1 id="intro-title">
             Agents move fast.
             <span>You decide when they may act.</span>
           </h1>
           <p className="intro-lede">
-            Practise leading three AI agents through a simulated software incident.
-            You will define their boundaries, inspect their evidence, stop an unsafe
-            change, and require independent proof before approving the result.
+            Learn safely in Trial Mode, then use the same approval workflow on a
+            real Git repository. Define boundaries, inspect evidence, review the
+            patch, and require independent proof before anything is applied.
           </p>
 
           <div className="intro-definition">
             <span>What this is</span>
             <strong>
-              Training for the human supervising the agents—not another coding
-              assistant.
+              A place to practise the workflow and then use it on real code.
             </strong>
           </div>
 
-          <button className="primary-action intro-begin" onClick={onBegin} type="button">
-            Begin the five-minute drill
-            <span aria-hidden="true">→</span>
-          </button>
-          <p className="intro-safety">
-            Safe simulation · No real repository is changed · No account required
-          </p>
+          <div className="mode-choices" aria-label="Choose how to use CONTROL ROOM">
+            <button className="mode-choice mode-choice--trial" onClick={onTrial} type="button">
+              <span className="mode-choice__number">01 · Start here</span>
+              <strong>Trial Mode</strong>
+              <p>Learn the workflow in a five-minute guided incident. Safe, instant, and no account required.</p>
+              <span className="mode-choice__action">Try the simulation <i aria-hidden="true">→</i></span>
+            </button>
+            <button className="mode-choice mode-choice--real" onClick={onReal} type="button">
+              <span className="mode-choice__number">02 · When ready</span>
+              <strong>Real Mode</strong>
+              <p>Connect your own clean Git repository. Real agents inspect, prepare, verify, and—only with approval—apply a patch.</p>
+              <span className="mode-choice__action">Use my repository <i aria-hidden="true">→</i></span>
+            </button>
+          </div>
+          <p className="intro-safety">Both modes keep you at every approval gate · Nothing commits or pushes</p>
         </div>
 
         <aside className="intro-chain-panel" aria-labelledby="chain-title">
@@ -588,7 +598,7 @@ function DrillIntroduction({
               <RoleMark role="builder" />
               <div>
                 <strong>Builder prepares a change</strong>
-                <p>The drill stops the work when regional evidence conflicts.</p>
+                <p>Works only after you approve Scout’s evidence and plan.</p>
               </div>
             </li>
             <li className="intro-chain__gate">
@@ -599,7 +609,7 @@ function DrillIntroduction({
               <RoleMark role="verifier" />
               <div>
                 <strong>Verifier checks independently</strong>
-                <p>You finish with coaching tied to your actual decisions.</p>
+                <p>Checks the actual patch before you may apply it.</p>
               </div>
             </li>
           </ol>
@@ -612,7 +622,7 @@ function DrillIntroduction({
           Developers, technical leads, and teams learning to supervise AI agents
           safely.
         </p>
-        <strong>Education drill · Verified replay</strong>
+        <strong>Trial first · Real work when ready</strong>
       </footer>
     </main>
   );
@@ -620,7 +630,8 @@ function DrillIntroduction({
 
 function App() {
   const [state, dispatch] = useReducer(scenarioReducer, initialState);
-  const [hasStarted, setHasStarted] = useState(false);
+  const [mode, setMode] = useState<"intro" | "trial" | "real">("intro");
+  const hasStarted = mode === "trial";
   const [draft, setDraft] = useState<DirectiveDraft>({
     objective: "",
     boundary: "",
@@ -735,12 +746,21 @@ function App() {
     window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
   };
 
-  if (!hasStarted) {
+  if (mode === "real") {
+    return import.meta.env.VITE_REAL_MODE === "true" ? (
+      <RealWorkspace onBack={() => setMode("intro")} />
+    ) : (
+      <RealSetup onBack={() => setMode("intro")} />
+    );
+  }
+
+  if (mode === "intro") {
     return (
       <div className={reduceMotion ? "app reduce-motion" : "app"}>
         <a className="skip-link" href="#main-content">Skip to introduction</a>
         <DrillIntroduction
-          onBegin={() => setHasStarted(true)}
+          onTrial={() => setMode("trial")}
+          onReal={() => setMode("real")}
           onToggleMotion={() => setReduceMotion((value) => !value)}
           reduceMotion={reduceMotion}
         />

@@ -1,18 +1,16 @@
 # CONTROL ROOM
 
-> A hands-on delegation drill for learning how to direct AI agents with clear
-> boundaries, evidence, and independent verification.
+> Learn a safe agent workflow in Trial Mode, then use it on a real Git repository.
 
-CONTROL ROOM is Ramen Protocol's public OpenAI Build Week 2026 entry. In one short
-scenario, the learner directs Scout, Builder, and Verifier through a software
-incident. The learner owns every consequential decision: what each agent may do,
-what proof must come back, when conflicting evidence blocks a change, and when the
-work is ready to verify.
+CONTROL ROOM is Ramen Protocol's public OpenAI Build Week 2026 entry. **Trial Mode**
+teaches the workflow in a five-minute guided incident. **Real Mode** connects to a
+clean Git repository on the user's computer, where Scout investigates, Builder
+prepares a real patch in an isolated worktree, Verifier checks it independently,
+and the user decides whether to apply it. Nothing commits or pushes automatically.
 
 ## Current build
 
-The repository contains the complete full-stack vertical slice of the core
-experience:
+Trial Mode contains the complete guided experience:
 
 1. Write a four-part directive for a read-only Scout.
 2. Review file, test, and log evidence before authorizing a handoff.
@@ -32,6 +30,11 @@ no API request, needs no hosted key, and preserves the complete judged path. Thi
 gives the public demo a reliable zero-cost mode while the Worker remains available
 for live GPT-5.6 validation.
 
+Real Mode uses the official Codex SDK and the user's existing local Codex
+authentication. It does not require this project to ship or pay for an API key.
+The companion binds only to `127.0.0.1`, disables agent network access, and uses a
+random per-process browser token.
+
 ## Run locally
 
 Requirements: Node.js 20 or newer and npm.
@@ -43,6 +46,27 @@ npm run dev
 
 Vite prints the local URL after startup. The Cloudflare Vite plugin runs both the
 React client and Worker API in the same local process.
+
+### Use Real Mode on a repository
+
+Start with a clean Git working tree, then run CONTROL ROOM from this repository:
+
+```bash
+npm run real -- --repo /absolute/path/to/your/git/repository
+```
+
+Open `http://127.0.0.1:4317`, choose **Real Mode**, and complete the visible gates:
+
+1. Brief Scout with an objective, boundary, completion condition, and required proof.
+2. Inspect Scout's file-and-line evidence before approving Builder.
+3. Inspect Builder's real diff, prepared in a temporary detached Git worktree.
+4. Request an independent read-only Verifier review.
+5. Apply the verified patch to your working tree only if you approve it.
+
+The runner uses the Codex login and usage allowance already available on the user's
+computer; normal Codex plan limits still apply. It does not commit, push, deploy,
+give agent shell tools network access, or overwrite a dirty repository. If the
+repository HEAD or working tree changes during a session, Apply stops.
 
 To produce the zero-cost static Pages artifact:
 
@@ -77,6 +101,7 @@ npm run lint
 npm run test
 npm run build
 npm run build:pages
+npm run build:real
 ```
 
 The tests cover the reducer, request and response contracts, role permissions,
@@ -111,6 +136,8 @@ coaching succeed.
 - A state reducer that keeps every consequential transition learner-owned
 - CSS and inline SVG for the interface and motion system
 - Vitest for scenario, API, permission, and security behavior
+- A loopback-only Node companion using `@openai/codex-sdk` for real repositories
+- An isolated temporary Git worktree for Builder and a patch-based final apply gate
 
 The model can cite only evidence IDs returned by role-permitted tools. The Worker
 materializes those IDs from an allowlisted scenario pack, so invented citations do
@@ -130,6 +157,10 @@ Verifier tools, and GPT-5.6 cannot authorize its own handoff.
 - Responses are sent with `Cache-Control: no-store`.
 - The static Pages build ships a restrictive CSP, clickjacking protection, a strict
   referrer policy, and disabled camera, microphone, and geolocation access.
+- Real Mode requires a clean repository, captures the starting commit, and refuses
+  to apply if either changes during the session.
+- Real Mode agents have network access disabled; Scout and Verifier are read-only.
+- Builder can write only inside CONTROL ROOM's temporary worktree.
 
 Before a public live deployment, add a Cloudflare rate-limiting rule and set an
 OpenAI project budget. Those external controls are intentionally not created by
