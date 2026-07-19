@@ -12,6 +12,11 @@
   --signal: #ef6548;
   --verify: #79b9ae;
   --brass: #c9a45e;
+  --paper: #e8e2d4;
+  --gold: var(--brass);
+  --gold-dark: #72561f;
+  --display: "Archivo", "Atkinson Hyperlegible", sans-serif;
+  --mono: "Fragment Mono", "SFMono-Regular", Consolas, monospace;
   --ink: #162126;
   --text: #f5f1e8;
   --muted: #aab6b8;
@@ -282,7 +287,6 @@ p {
 }
 
 .mode-choice--trial .mode-choice__number { color: #6c5422; }
-.mode-choice--trial p { color: #3d4b48; }
 .mode-choice--trial .mode-choice__action { color: #162320; }
 
 .mode-choice__number {
@@ -296,11 +300,14 @@ p {
 .mode-choice--real .mode-choice__number { color: #b6a878; }
 .mode-choice > strong { margin-top: 28px; font-family: var(--display); font-size: 1.75rem; letter-spacing: -0.03em; }
 .mode-choice p { margin: 10px 0 20px; color: var(--muted); font-size: 0.9rem; line-height: 1.55; }
+.mode-choice--trial p { color: #3d4b48; }
 .mode-choice--real p { color: #c6cbc6; }
 .mode-choice__action { display: flex; margin-top: auto; align-items: center; justify-content: space-between; font-family: var(--mono); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
 .mode-choice__action i { color: var(--gold); font-size: 1.2rem; font-style: normal; }
 
 .real-setup {
+  --line: rgba(22, 33, 38, 0.18);
+  --muted: #52625f;
   min-height: 100vh;
   padding: clamp(28px, 5vw, 76px);
   color: var(--ink);
@@ -308,7 +315,7 @@ p {
 }
 
 .real-setup > .eyebrow { margin-top: 70px; }
-.real-setup h1 { max-width: 900px; margin: 12px 0 20px; font-family: var(--display); font-size: clamp(3rem, 7vw, 6.8rem); line-height: 0.92; letter-spacing: -0.06em; }
+.real-setup h1 { max-width: 900px; margin: 12px 0 20px; font-family: var(--display); font-size: clamp(3rem, 7vw, 6.8rem); line-height: 0.92; letter-spacing: -0.06em; word-spacing: 0.08em; }
 .real-setup__lede { max-width: 780px; color: var(--muted); font-size: 1.15rem; line-height: 1.65; }
 .real-setup__steps { max-width: 980px; margin: 48px 0; padding: 0; border-top: 1px solid var(--line); list-style: none; }
 .real-setup__steps li { display: grid; grid-template-columns: 70px 1fr; gap: 18px; padding: 22px 0; border-bottom: 1px solid var(--line); }

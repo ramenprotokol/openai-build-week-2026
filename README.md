@@ -1,102 +1,173 @@
 # CONTROL ROOM
 
-> Learn a safe agent workflow in Trial Mode, then use it on a real Git repository.
+> Direct AI coding agents through evidence, approval, and independent verification—then decide whether their patch reaches your working tree.
 
-CONTROL ROOM is Ramen Protocol's public OpenAI Build Week 2026 entry. **Trial Mode**
-teaches the workflow in a five-minute guided incident. **Real Mode** connects to a
-clean Git repository on the user's computer, where Scout investigates, Builder
-prepares a real patch in an isolated worktree, Verifier checks it independently,
-and the user decides whether to apply it. Nothing commits or pushes automatically.
+[Try Trial Mode](https://control-room-build-week-2026.pages.dev/) · [Open the public repository](https://github.com/ramenprotokol/openai-build-week-2026) · OpenAI Build Week 2026, Education track
 
-## Current build
+![CONTROL ROOM showing Trial Mode, Real Mode, and the approval-based command chain](./docs/control-room-overview.png)
 
-Trial Mode contains the complete guided experience:
+CONTROL ROOM is a five-minute training drill and a real-repository workflow. It
+teaches developers how to brief one agent, inspect its evidence, authorize a
+separate agent to prepare a change, and require an independent review before
+anything is applied. It never commits or pushes automatically.
 
-1. Write a four-part directive for a read-only Scout.
-2. Review file, test, and log evidence before authorizing a handoff.
-3. Stop Builder when evidence from two regions conflicts.
-4. Resolve the discrepancy and request an independent verification pass.
-5. Review an evidence-linked debrief with one strong decision, one correction, and
-   a stronger before/after directive.
+## See it in one example
 
-Every agent turn now travels through the same typed Cloudflare Worker endpoint. The
-Worker can run GPT-5.6 Sol through the Responses API or return the verified
-deterministic fallback. Fallback mode is the default, so local development, tests,
-and the complete demo path make no paid API calls. The interface labels the active
-mode and never generates an opaque score.
+Imagine a developer needs to fix a retry bug. Instead of giving one agent the vague
+instruction “fix it,” the developer uses CONTROL ROOM to:
 
-A separate Pages build turns the same fallback into a fully static replay. It makes
-no API request, needs no hosted key, and preserves the complete judged path. This
-gives the public demo a reliable zero-cost mode while the Worker remains available
-for live GPT-5.6 validation.
+1. Tell **Scout** the objective, boundaries, completion condition, and required proof.
+2. Inspect Scout's file, test, and log evidence before allowing any edit.
+3. Let **Builder** prepare the smallest supported patch in an isolated Git worktree.
+4. Ask a separate read-only **Verifier** to challenge the actual patch.
+5. Inspect the result and explicitly choose whether to apply it.
 
-Real Mode uses the official Codex SDK and the user's existing local Codex
-authentication. It does not require this project to ship or pay for an API key.
-The companion binds only to `127.0.0.1`, disables agent network access, and uses a
-random per-process browser token.
+Trial Mode rehearses that workflow with a synthetic incident. Real Mode performs it
+against a clean Git repository selected by the user.
 
-## Run locally
+## Choose a mode
 
-Requirements: Node.js 20 or newer and npm.
+| | Trial Mode | Real Mode |
+|---|---|---|
+| Best for | Learning the workflow | Using the workflow on a real task |
+| Repository | Synthetic incident; no local files | A clean Git repository you choose |
+| Agent runtime | Verified deterministic replay on the public site | Three separate Codex SDK threads using GPT-5.6 Sol |
+| Changes | None | Builder writes only in a temporary detached worktree; Apply is a separate human gate |
+| Account or key | None | Existing local Codex sign-in; normal plan limits apply |
+| Cost from this project | None | No project API key or added paid service is required |
+
+The optional Responses API path is separate and disabled by default. No ChatGPT
+plugin, database, or hosted API key is required for either primary path.
+
+## How it works
+
+```mermaid
+flowchart LR
+    U["You define the task<br/>and required proof"] --> S["Scout<br/>read-only investigation"]
+    S --> G1{"You approve<br/>the evidence?"}
+    G1 -->|Yes| B["Builder<br/>isolated worktree"]
+    B --> G2{"You approve<br/>independent review?"}
+    G2 -->|Yes| V["Verifier<br/>read-only challenge"]
+    V --> G3{"You inspect and<br/>authorize Apply?"}
+    G3 -->|Yes| A["Patch enters your<br/>working tree"]
+```
+
+The user owns every consequential transition. Scout cannot edit, Builder cannot
+verify itself, Verifier cannot modify the patch, and the model cannot authorize a
+handoff.
+
+## Try Trial Mode
+
+Open the [live demo](https://control-room-build-week-2026.pages.dev/), choose
+**Trial Mode**, and select **Load a strong example** if you want to start
+immediately. The complete public path runs as a static replay: no account, API key,
+or model call is needed.
+
+To run the same project locally:
 
 ```bash
-npm install
+git clone https://github.com/ramenprotokol/openai-build-week-2026.git
+cd openai-build-week-2026
+npm ci
 npm run dev
 ```
 
-Vite prints the local URL after startup. The Cloudflare Vite plugin runs both the
-React client and Worker API in the same local process.
+Requirements: Node.js 20 or newer and npm.
 
-### Use Real Mode on a repository
+## Use Real Mode on your repository
 
-Start with a clean Git working tree, then run CONTROL ROOM from this repository:
+Sign in to Codex on the machine first. Start with a clean target repository, then
+run CONTROL ROOM from this project:
 
 ```bash
+npm ci
 npm run real -- --repo /absolute/path/to/your/git/repository
 ```
 
-Open `http://127.0.0.1:4317`, choose **Real Mode**, and complete the visible gates:
+Open `http://127.0.0.1:4317`, choose **Real Mode**, and follow the visible gates.
+After each role, CONTROL ROOM shows the model, sandbox, Codex thread ID, measured
+token usage, evidence, and—when applicable—the real diff.
 
-1. Brief Scout with an objective, boundary, completion condition, and required proof.
-2. Inspect Scout's file-and-line evidence before approving Builder.
-3. Inspect Builder's real diff, prepared in a temporary detached Git worktree.
-4. Request an independent read-only Verifier review.
-5. Apply the verified patch to your working tree only if you approve it.
+Real Mode:
 
-After each live role, the interface displays its model, sandbox, persisted Codex
-thread ID, and measured token usage. **Download trace JSON** exports those records
-with timestamps and evidence references, while excluding prompts, credentials and
-private machine paths.
+- binds the local companion only to `127.0.0.1`;
+- requires a random per-process browser token and validates local Host and Origin;
+- disables agent shell-tool network access;
+- pins the starting commit and refuses to continue if the repository changes;
+- gives Builder write access only inside a temporary detached worktree;
+- runs `git apply --check` before the final user-authorized apply; and
+- never commits, pushes, deploys, or overwrites a dirty repository.
 
-The runner uses the Codex login and usage allowance already available on the user's
-computer; normal Codex plan limits still apply. It does not commit, push, deploy,
-give agent shell tools network access, or overwrite a dirty repository. If the
-repository HEAD or working tree changes during a session, Apply stops.
+The loopback companion keeps the browser control surface local. The Codex SDK still
+uses the user's Codex service and data controls, so only connect repositories that
+the user is permitted to process with Codex.
 
-To produce the zero-cost static Pages artifact:
+### Trace export
+
+**Download trace JSON** exports model, sandbox, timestamps, token usage, evidence
+references, the repository basename, base commit, and session/thread IDs. It omits
+prompts, credentials, and absolute machine paths. Review any trace before publishing
+it, just as you would review a patch.
+
+## Optional live GPT-5.6 mode
+
+The Cloudflare Worker can run the same Trial Mode turns through the OpenAI Responses
+API. Live mode is disabled in `wrangler.jsonc` and the deterministic fallback remains
+the default.
+
+After explicitly approving API spending:
 
 ```bash
-npm run build:pages
+cp .dev.vars.example .dev.vars
 ```
 
-The deployable files are written to `dist/client`. They include Cloudflare Pages
-security headers and a build-time replay flag, so the browser never calls a missing
-API route.
+Edit the ignored `.dev.vars` file, provide `OPENAI_API_KEY`, set
+`LIVE_AI_ENABLED` to `true`, and keep `OPENAI_MODEL` as `gpt-5.6-sol`. The key must
+remain server-side; never put it in a `VITE_` variable or browser bundle. Verify the
+current [GPT-5.6 Sol model page](https://developers.openai.com/api/docs/models/gpt-5.6-sol)
+before enabling paid usage.
 
-### Optional live GPT-5.6 mode
+## Architecture
 
-Live mode is deliberately disabled in `wrangler.jsonc`. To test it after approving
-API spending, create an ignored `.dev.vars` file:
+| Layer | Responsibility |
+|---|---|
+| React 19 + TypeScript | Trial and Real Mode interfaces, visible gates, evidence, diff, and trace views |
+| Scenario reducer | Prevents out-of-order or model-owned transitions |
+| Cloudflare Worker | Validates `POST /api/turn`, routes optional live turns, and serves the verified fallback |
+| Responses API adapter | Runs bounded GPT-5.6 Sol tool loops with structured output and role-specific tools |
+| Codex SDK companion | Runs Scout, Builder, and Verifier on a user-selected local repository |
+| Git worktree boundary | Isolates Builder and makes final application patch-based and user-owned |
 
-```dotenv
-OPENAI_API_KEY=<server-side-key>
-LIVE_AI_ENABLED=true
-OPENAI_MODEL=gpt-5.6-sol
-```
+The public Pages build is a fully static replay. The optional Worker and Real Mode
+companion are separate runtimes, so a reliable no-cost demo does not pretend that a
+model call occurred.
 
-Never place the API key in a `VITE_` variable or browser code. Published model
-pricing can change; verify the current [GPT-5.6 Sol model page](https://developers.openai.com/api/docs/models/gpt-5.6-sol)
-before enabling live mode.
+## How GPT-5.6 and Codex are used
+
+- **Codex built the project:** product design, implementation, tests, reviews,
+  documentation, release checks, and the recorded build task were completed in
+  Codex.
+- **GPT-5.6 Sol in Trial Mode:** the optional Worker uses the Responses API,
+  role-permitted tools, structured outputs, evidence allowlists, and bounded tool
+  loops. The interface discloses whether each turn was live or fallback.
+- **GPT-5.6 Sol in Real Mode:** the official Codex SDK starts separate Scout,
+  Builder, and Verifier threads with read-only or workspace-write sandboxes. Their
+  measured traces are exposed to the user.
+
+The model can cite only evidence IDs returned by role-permitted tools. Tool content
+and learner text are marked as untrusted data, and GPT-5.6 cannot approve its own
+work.
+
+## Security and privacy model
+
+| Risk | Control | Remaining limit |
+|---|---|---|
+| Browser or cross-origin abuse | Same-origin Worker requests; restrictive CSP; loopback bind, random token, Host and Origin checks in Real Mode | A compromised browser or machine remains outside the app's protection |
+| Agent overreach | Separate roles, sandbox permissions, no agent network, and human approval gates | Users must still inspect evidence and the final patch |
+| Repository damage | Clean-tree requirement, starting-commit pin, isolated worktree, independent review, and checked patch apply | A non-failing Verifier concern can proceed only through the explicit human apply gate |
+| Invented model evidence | Allowlisted tools, materialized evidence IDs, strict schemas, and deterministic fallback | The training incident is synthetic, not a production benchmark |
+| Secret exposure | Server-only OpenAI key, ignored local env files, bounded requests, no stored Responses, and pre-push secret/history scans | Repository content processed by Codex follows the user's Codex data controls |
+| Uncontrolled API spend | Live Worker mode disabled by default | A public live deployment still needs a Cloudflare rate limit and OpenAI project budget |
 
 ## Quality checks
 
@@ -107,100 +178,42 @@ npm run test
 npm run build
 npm run build:pages
 npm run build:real
+npm audit --audit-level=moderate
+npm audit signatures
 ```
 
-The tests cover the reducer, request and response contracts, role permissions,
-cross-origin rejection, invalid payloads, prompt-injection handling, static-host
-replay behavior, and the complete ordered scenario. Builder cannot proceed through
-conflicting evidence, and the drill cannot end before independent verification and
-coaching succeed.
+Tests cover the reducer, API contracts, role permissions, prompt-injection handling,
+cross-origin rejection, Real Mode token/Host/Origin protection, static replay, and
+the complete ordered scenario. The release build also includes keyboard focus,
+live-region announcements, reduced motion, responsive layouts, and self-hosted
+fonts. GitHub runs the same type, lint, test, audit, and release-build gates on Node
+20 and Node 22 for every pull request and every push to `main`.
 
-## Product and design decisions
+## Status and limits
 
-- **Learning by directing:** the main interaction is writing and authorizing
-  directives, not watching an agent chat with itself.
-- **Visible authority:** Scout is read-only, Builder has isolated write access, and
-  Verifier is independently read-only.
-- **Evidence before action:** each handoff is tied to concrete proof.
-- **Human-owned gates:** the system pauses for the learner at the conflict and
-  verification decisions.
-- **Legible under pressure:** keyboard focus, a skip link, live status updates,
-  self-hosted type, a reduced-motion control, and responsive layouts are built in.
-- **Purposeful visual language:** a dark operations console, paper directives,
-  brass hardware, and signal colors replace generic chat bubbles and glass cards.
+This is an experimental OpenAI Build Week 2026 entry, not a general-purpose coding
+agent platform.
 
-## Architecture
+- Trial Mode uses one synthetic enrollment incident.
+- The public demo intentionally uses the verified static replay.
+- Real Mode sessions live in memory and end with the local companion process.
+- Live Worker mode is appropriate only after external rate and budget controls are
+  configured.
 
-- React 19 and TypeScript
-- Vite with the Cloudflare Workers Vite plugin
-- One `POST /api/turn` route for Scout, Builder, Verifier, and Coach
-- OpenAI Responses API with `gpt-5.6-sol`, low reasoning effort, bounded tool loops,
-  and structured outputs
-- Zod validation at the browser and Worker boundaries
-- A deterministic fallback implementing the same response contract
-- A state reducer that keeps every consequential transition learner-owned
-- CSS and inline SVG for the interface and motion system
-- Vitest for scenario, API, permission, and security behavior
-- A loopback-only Node companion using `@openai/codex-sdk` for real repositories
-- An isolated temporary Git worktree for Builder and a patch-based final apply gate
-
-The model can cite only evidence IDs returned by role-permitted tools. The Worker
-materializes those IDs from an allowlisted scenario pack, so invented citations do
-not reach the interface. Scout cannot call Builder tools, Builder cannot call
-Verifier tools, and GPT-5.6 cannot authorize its own handoff.
-
-## Runtime safety
-
-- The OpenAI key is server-only.
-- Live mode requires both a key and an explicit server-side enable flag.
-- Requests are same-origin, JSON-only, and limited to 12 KB.
-- All strings, arrays, enums, and model outputs have bounded schemas.
-- Tool permissions and evidence allowlists are enforced in code.
-- Model and learner text are marked as untrusted data in the role prompt.
-- Each live request has a 20-second timeout and silently degrades to a labeled
-  fallback result.
-- Responses are sent with `Cache-Control: no-store`.
-- The static Pages build ships a restrictive CSP, clickjacking protection, a strict
-  referrer policy, and disabled camera, microphone, and geolocation access.
-- Real Mode requires a clean repository, captures the starting commit, and refuses
-  to apply if either changes during the session.
-- Real Mode agents have network access disabled; Scout and Verifier are read-only.
-- Builder can write only inside CONTROL ROOM's temporary worktree.
-
-Before a public live deployment, add a Cloudflare rate-limiting rule and set an
-OpenAI project budget. Those external controls are intentionally not created by
-this local build.
-
-## Build Week constraints
-
-- Submission deadline: July 21, 2026 at 5:00 PM Pacific Time.
-- The final entry must be built with Codex and meaningfully use GPT-5.6.
-- The public submission needs a working test path, clear documentation, a public
-  repository, and a demo video no longer than three minutes.
-- The demo must explain the product, the Codex workflow, and the GPT-5.6
-  integration.
-
-No ChatGPT plugin, database, remote, paid model usage, or deployment is required to
-run the current local slice.
-
-## Links
+## Build Week proof
 
 - [Live demo](https://control-room-build-week-2026.pages.dev/)
 - [Public repository](https://github.com/ramenprotokol/openai-build-week-2026)
-- [Challenge overview](https://openai.devpost.com/)
-- [Official rules](https://openai.devpost.com/rules)
-
-## Live GPT-5.6 proof
-
-- Codex build `/feedback` session: `019f7338-9889-7253-bb72-3bbb92cae94e`
-- [Sanitized three-role trace](./evidence/live-gpt-5-6-sol-trace.json)
+- Primary Codex `/feedback` session: `019f7338-9889-7253-bb72-3bbb92cae94e`
+- [Sanitized three-role GPT-5.6 trace](./evidence/live-gpt-5-6-sol-trace.json)
 - [Three-role proof screenshot](./evidence/live-gpt-5-6-sol-trace.png)
+- [Challenge overview](https://openai.devpost.com/) and [official rules](https://openai.devpost.com/rules)
 
-The recorded run used separate GPT-5.6 Sol threads for read-only Scout,
-workspace-write Builder, and read-only Verifier. Verifier returned `concern`
-because dependencies were unavailable inside the isolated worktree; it confirmed
-the one-file boundary and disclosed the missing runtime test instead of claiming a
-false pass. The main repository was not changed by the recorded patch.
+The recorded Real Mode run used separate GPT-5.6 Sol threads for read-only Scout,
+workspace-write Builder, and read-only Verifier. Verifier returned `concern` because
+dependencies were unavailable inside the isolated worktree. It confirmed the
+one-file boundary and disclosed the missing runtime test instead of claiming a false
+pass. The main repository was not changed by the recorded patch.
 
 ## License
 
