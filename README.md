@@ -192,6 +192,7 @@ run the current local slice.
 
 ## Live GPT-5.6 proof
 
+- Codex build `/feedback` session: `019f7338-9889-7253-bb72-3bbb92cae94e`
 - [Sanitized three-role trace](./evidence/live-gpt-5-6-sol-trace.json)
 - [Three-role proof screenshot](./evidence/live-gpt-5-6-sol-trace.png)
 
