@@ -186,7 +186,8 @@ Tests cover the reducer, API contracts, role permissions, prompt-injection handl
 cross-origin rejection, Real Mode token/Host/Origin protection, static replay, and
 the complete ordered scenario. The release build also includes keyboard focus,
 live-region announcements, reduced motion, responsive layouts, and self-hosted
-fonts.
+fonts. GitHub runs the same type, lint, test, audit, and release-build gates on Node
+20 and Node 22 for every pull request and every push to `main`.
 
 ## Status and limits
 
