@@ -11,12 +11,39 @@ import { promisify } from "node:util";
 const exec = promisify(execFile);
 const host = "127.0.0.1";
 const port = Number(process.env.CONTROL_ROOM_PORT || 4317);
-const staticRoot = resolve("dist/client");
+const staticRoot = resolve(process.env.CONTROL_ROOM_STATIC_ROOT || "dist/client");
 const token = randomBytes(24).toString("hex");
 const model = process.env.CONTROL_ROOM_MODEL || "gpt-5.6-sol";
 const repoArg = process.argv.indexOf("--repo");
 const repository = await realpath(resolve(repoArg >= 0 ? process.argv[repoArg + 1] || "" : process.cwd()));
 const sessions = new Map();
+const localAuthorities = new Set([`${host}:${port}`, `localhost:${port}`]);
+const localOrigins = new Set([...localAuthorities].map((authority) => `http://${authority}`));
+
+const responseSecurityHeaders = {
+  "cross-origin-opener-policy": "same-origin",
+  "cross-origin-resource-policy": "same-origin",
+  "permissions-policy": "camera=(), microphone=(), geolocation=()",
+  "referrer-policy": "no-referrer",
+  "x-content-type-options": "nosniff",
+  "x-frame-options": "DENY",
+};
+
+const documentSecurityHeaders = {
+  ...responseSecurityHeaders,
+  "content-security-policy": [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self'",
+    "font-src 'self' data:",
+    "img-src 'self' data:",
+    "connect-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+  ].join("; "),
+};
 
 const scoutSchema = { type: "object", additionalProperties: false, required: ["summary", "findings", "plan", "risks"], properties: {
   summary: { type: "string" },
@@ -33,8 +60,20 @@ const verifierSchema = { type: "object", additionalProperties: false, required: 
 } };
 
 function json(res, statusCode, body) {
-  res.writeHead(statusCode, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
+  res.writeHead(statusCode, {
+    ...responseSecurityHeaders,
+    "content-type": "application/json; charset=utf-8",
+    "cache-control": "no-store",
+  });
   res.end(JSON.stringify(body));
+}
+
+function isTrustedLocalRequest(req) {
+  const authority = req.headers.host?.toLowerCase();
+  if (!authority || !localAuthorities.has(authority)) return false;
+  const origin = req.headers.origin;
+  if (!origin) return true;
+  try { return localOrigins.has(new URL(origin).origin); } catch { return false; }
 }
 
 async function git(cwd, args, options = {}) {
@@ -221,13 +260,25 @@ async function serveStatic(req, res, pathname) {
   if (!existsSync(file) || !(await stat(file)).isFile()) file = join(staticRoot, "index.html");
   if (extname(file) === ".html") {
     const html = (await readFile(file, "utf8")).replace("</head>", `<meta name="control-room-token" content="${token}"></head>`);
-    res.writeHead(200, { "content-type": mime[".html"], "cache-control": "no-store" }); return res.end(html);
+    res.writeHead(200, {
+      ...documentSecurityHeaders,
+      "content-type": mime[".html"],
+      "cache-control": "no-store",
+    });
+    return res.end(html);
   }
-  res.writeHead(200, { "content-type": mime[extname(file)] || "application/octet-stream" }); createReadStream(file).pipe(res);
+  res.writeHead(200, {
+    ...responseSecurityHeaders,
+    "content-type": mime[extname(file)] || "application/octet-stream",
+  });
+  createReadStream(file).pipe(res);
 }
 
 const server = createServer(async (req, res) => {
   try {
+    if (!isTrustedLocalRequest(req)) {
+      return json(res, 403, { error: "Local request origin rejected." });
+    }
     const url = new URL(req.url || "/", `http://${host}:${port}`);
     if (url.pathname.startsWith("/api/real/")) return await api(req, res, url.pathname);
     return await serveStatic(req, res, url.pathname);

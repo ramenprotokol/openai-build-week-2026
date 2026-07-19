@@ -57,14 +57,14 @@ export function RealSetup({ onBack }: { onBack: () => void }) {
       </p>
       <ol className="real-setup__steps">
         <li><span>01</span><div><strong>Clone CONTROL ROOM</strong><code>git clone https://github.com/ramenprotokol/openai-build-week-2026.git</code></div></li>
-        <li><span>02</span><div><strong>Install it</strong><code>cd openai-build-week-2026 &amp;&amp; npm install</code></div></li>
+        <li><span>02</span><div><strong>Install it</strong><code>cd openai-build-week-2026 &amp;&amp; npm ci</code></div></li>
         <li><span>03</span><div><strong>Connect a clean Git repository</strong><code>npm run real -- --repo /absolute/path/to/your/repository</code></div></li>
         <li><span>04</span><div><strong>Open the local workspace</strong><code>http://127.0.0.1:4317</code></div></li>
       </ol>
       <div className="real-safety-grid">
         <article><strong>Your login</strong><p>Uses the Codex authentication already saved on your computer. No project API key is bundled; your normal Codex plan limits apply.</p></article>
         <article><strong>Your control</strong><p>Builder works in a temporary Git worktree. Nothing reaches your repository until you approve Apply.</p></article>
-        <article><strong>Your privacy</strong><p>The companion binds to your computer only. Agent shell tools get no network access and never commit or push.</p></article>
+        <article><strong>Your connection</strong><p>The browser companion listens only on your computer. Codex still follows your account's data controls; agent shell tools get no network access and never commit or push.</p></article>
       </div>
     </main>
   );
