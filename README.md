@@ -190,6 +190,17 @@ run the current local slice.
 - [Challenge overview](https://openai.devpost.com/)
 - [Official rules](https://openai.devpost.com/rules)
 
+## Live GPT-5.6 proof
+
+- [Sanitized three-role trace](./evidence/live-gpt-5-6-sol-trace.json)
+- [Three-role proof screenshot](./evidence/live-gpt-5-6-sol-trace.png)
+
+The recorded run used separate GPT-5.6 Sol threads for read-only Scout,
+workspace-write Builder, and read-only Verifier. Verifier returned `concern`
+because dependencies were unavailable inside the isolated worktree; it confirmed
+the one-file boundary and disclosed the missing runtime test instead of claiming a
+false pass. The main repository was not changed by the recorded patch.
+
 ## License
 
 MIT — see [LICENSE](./LICENSE).

@@ -13,7 +13,7 @@ const host = "127.0.0.1";
 const port = Number(process.env.CONTROL_ROOM_PORT || 4317);
 const staticRoot = resolve("dist/client");
 const token = randomBytes(24).toString("hex");
-const model = process.env.CONTROL_ROOM_MODEL || "gpt-5.6";
+const model = process.env.CONTROL_ROOM_MODEL || "gpt-5.6-sol";
 const repoArg = process.argv.indexOf("--repo");
 const repository = await realpath(resolve(repoArg >= 0 ? process.argv[repoArg + 1] || "" : process.cwd()));
 const sessions = new Map();
@@ -94,6 +94,11 @@ async function runRole(role, workingDirectory, sandboxMode, prompt, outputSchema
 }
 
 function publicTrace(session) {
+  const redactEvidence = (value) => {
+    let redacted = String(value).replaceAll(repository, "[repository]");
+    if (session.worktree) redacted = redacted.replaceAll(session.worktree, "[isolated-worktree]");
+    return redacted;
+  };
   return {
     schemaVersion: "1.0",
     product: "CONTROL ROOM",
@@ -103,7 +108,10 @@ function publicTrace(session) {
     startedAt: session.startedAt,
     completedAt: session.completedAt || null,
     finalStatus: session.finalStatus || "in_progress",
-    roles: session.traces,
+    roles: session.traces.map((trace) => ({
+      ...trace,
+      evidenceReferences: trace.evidenceReferences.map(redactEvidence),
+    })),
   };
 }
 

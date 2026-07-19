@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "1.0",
+  "product": "CONTROL ROOM",
+  "sessionId": "5385d15c2a8c2aae179d",
+  "repositoryName": "openai-build-week-2026",
+  "baseCommit": "8ae32ca0713a262fe7306a92694e2406e551fc17",
+  "startedAt": "2026-07-18T23:56:17.682Z",
+  "completedAt": "2026-07-19T00:04:15.890Z",
+  "finalStatus": "concern",
+  "roles": [
+    {
+      "role": "scout",
+      "model": "gpt-5.6-sol",
+      "sandboxMode": "read-only",
+      "networkAccess": false,
+      "threadId": "019f77a8-c8e9-74f3-9c1c-6c14363d114e",
+      "startedAt": "2026-07-18T23:56:17.682Z",
+      "completedAt": "2026-07-18T23:57:53.831Z",
+      "usage": {
+        "input_tokens": 170609,
+        "cached_input_tokens": 137728,
+        "output_tokens": 3769,
+        "reasoning_output_tokens": 1752
+      },
+      "evidenceReferences": [
+        "src/RealMode.tsx:65",
+        "src/App.tsx:749",
+        "src/App.tsx:763",
+        "src/App.test.tsx:37",
+        "package.json:15",
+        "vite.config.ts:5"
+      ]
+    },
+    {
+      "role": "builder",
+      "model": "gpt-5.6-sol",
+      "sandboxMode": "workspace-write",
+      "networkAccess": false,
+      "threadId": "019f77ab-6575-7dc1-9996-c8df07707bbc",
+      "startedAt": "2026-07-18T23:59:08.812Z",
+      "completedAt": "2026-07-19T00:00:45.110Z",
+      "usage": {
+        "input_tokens": 190944,
+        "cached_input_tokens": 156160,
+        "output_tokens": 3309,
+        "reasoning_output_tokens": 630
+      },
+      "evidenceReferences": [
+        "src/App.test.tsx"
+      ]
+    },
+    {
+      "role": "verifier",
+      "model": "gpt-5.6-sol",
+      "sandboxMode": "read-only",
+      "networkAccess": false,
+      "threadId": "019f77ad-a340-7d31-872f-88ce365255e5",
+      "startedAt": "2026-07-19T00:01:35.711Z",
+      "completedAt": "2026-07-19T00:04:15.890Z",
+      "usage": {
+        "input_tokens": 261595,
+        "cached_input_tokens": 214272,
+        "output_tokens": 5109,
+        "reasoning_output_tokens": 1852
+      },
+      "evidenceReferences": [
+        "Boundary passed: final `git status`, `git diff --name-only`, and `git diff --check` show only [src/App.test.tsx]([isolated-worktree]/src/App.test.tsx:37) modified, with no whitespace errors.",
+        "Existing UI copy is at [src/RealMode.tsx:65]([isolated-worktree]/src/RealMode.tsx:65): “No project API key is bundled; your normal Codex plan limits apply.”",
+        "The interaction path is correct: the accessible Real Mode button sets `mode` to `real`; without `VITE_REAL_MODE=\"true\"`, App renders the public `RealSetup` containing the asserted copy.",
+        "Exact changed test:\n```tsx\nit(\"explains public Real Mode setup and its Codex cost model\", () => {\n  render(<App />);\n\n  fireEvent.click(screen.getByRole(\"button\", { name: /Real Mode/i }));\n\n  expect(screen.getByRole(\"heading\", { name: /Open CONTROL ROOM beside your code/i })).toBeInTheDocument();\n  expect(screen.getByText(/npm run real -- --repo/i)).toBeInTheDocument();\n  expect(screen.getByText(/No project API key is bundled/i)).toBeInTheDocument();\n  expect(screen.getByText(/your normal Codex plan limits apply/i)).toBeInTheDocument();\n});\n```",
+        "Logical compatibility is supported: the existing setup heading and command assertions remain intact, while the two new assertions independently cover both cost-transparency claims. No production or security-sensitive code changed.",
+        "Tests could not run to collection. `npm test -- src/App.test.tsx` and `npm test` failed because Vite attempted to write a timestamped config file and received `EPERM`. Retrying with `--configLoader runner` avoided that write but failed because `@vitejs/plugin-react` is unavailable from this isolated worktree. These are startup failures, not assertion failures."
+      ]
+    }
+  ]
+}
